@@ -1,0 +1,43 @@
+const { verifyToken } = require('../utils/jwt');
+const db = require('../config/db');
+
+const protect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = verifyToken(token);
+
+      const [users] = await db.query('SELECT id, name, email, role FROM Users WHERE id = ?', [decoded.id]);
+      
+      if (users.length === 0) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      req.user = users[0];
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  }
+
+  if (!token) {
+    res.status(401).json({ message: 'Not authorized, no token' });
+  }
+};
+
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not authorized, insufficient permissions' });
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorize };
