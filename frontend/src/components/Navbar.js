@@ -22,9 +22,9 @@ export default function Navbar() {
         {/* Center Navigation Links */}
         <div className="hidden md:flex space-x-10">
           <Link href="/" className="text-[14px] font-medium text-black transition-colors">Home</Link>
-          <a href="/#features" className="text-[14px] font-medium text-gray-500 hover:text-black transition-colors">Features</a>
-          <a href="/#how-it-works" className="text-[14px] font-medium text-gray-500 hover:text-black transition-colors">How It Works</a>
-          <a href="/#solutions" className="text-[14px] font-medium text-gray-500 hover:text-black transition-colors">Solutions</a>
+          <Link href="/#features" className="text-[14px] font-medium text-gray-500 hover:text-black transition-colors">Features</Link>
+          <Link href="/#how-it-works" className="text-[14px] font-medium text-gray-500 hover:text-black transition-colors">How It Works</Link>
+          <Link href="/#solutions" className="text-[14px] font-medium text-gray-500 hover:text-black transition-colors">Solutions</Link>
         </div>
 
         {/* Action Buttons */}
