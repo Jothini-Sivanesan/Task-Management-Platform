@@ -69,7 +69,7 @@ export default function DashboardPage() {
         {/* Dashboard Header */}
         <div className="mb-8">
           <h1 className="text-[32px] font-bold text-black tracking-tight">Welcome back, {user.name.split(' ')[0]}! 👋</h1>
-          <p className="text-gray-500 text-[15px] mt-1">Here's what's happening with your projects today.</p>
+          <p className="text-gray-500 text-[15px] mt-1">Here&apos;s what&apos;s happening with your projects today.</p>
         </div>
 
         {/* Role Specific Mock Data */}

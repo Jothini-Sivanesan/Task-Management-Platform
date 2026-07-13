@@ -5,7 +5,7 @@ const db = require('../config/db');
 // @access  Private/Admin or PM
 const createProject = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, status, progress, start_date, due_date } = req.body;
     const createdById = req.user.id;
 
     if (!name) {
@@ -13,8 +13,8 @@ const createProject = async (req, res) => {
     }
 
     const [result] = await db.query(
-      'INSERT INTO Projects (name, description, created_by_id) VALUES (?, ?, ?)',
-      [name, description || '', createdById]
+      'INSERT INTO Projects (name, description, status, progress, start_date, due_date, created_by_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, description || '', status || 'Active', progress || 0, start_date || null, due_date || null, createdById]
     );
 
     // Automatically add the creator as a project member
@@ -23,7 +23,7 @@ const createProject = async (req, res) => {
       [result.insertId, createdById]
     );
 
-    res.status(201).json({ id: result.insertId, name, description, created_by_id: createdById });
+    res.status(201).json({ id: result.insertId, name, description, status, progress, start_date, due_date, created_by_id: createdById });
   } catch (error) {
     console.error('Error creating project:', error);
     res.status(500).json({ message: 'Server error' });
@@ -90,7 +90,7 @@ const getProjectById = async (req, res) => {
 // @access  Private/Admin or PM
 const updateProject = async (req, res) => {
   try {
-    const { name, description, status } = req.body;
+    const { name, description, status, progress, start_date, due_date } = req.body;
     const projectId = req.params.id;
 
     // Check if project exists and user has permission
@@ -104,8 +104,16 @@ const updateProject = async (req, res) => {
     }
 
     await db.query(
-      'UPDATE Projects SET name = ?, description = ?, status = ? WHERE id = ?',
-      [name || projects[0].name, description || projects[0].description, status || projects[0].status, projectId]
+      'UPDATE Projects SET name = ?, description = ?, status = ?, progress = ?, start_date = ?, due_date = ? WHERE id = ?',
+      [
+        name || projects[0].name, 
+        description || projects[0].description, 
+        status || projects[0].status,
+        progress !== undefined ? progress : projects[0].progress,
+        start_date !== undefined ? start_date : projects[0].start_date,
+        due_date !== undefined ? due_date : projects[0].due_date,
+        projectId
+      ]
     );
 
     res.json({ message: 'Project updated successfully' });

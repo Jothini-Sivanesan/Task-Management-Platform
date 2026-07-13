@@ -27,7 +27,7 @@ export default function UsersManagementPage() {
     }
   }, [user, loading, getToken, router, search]);
 
-  const fetchUsers = async () => {
+  async function fetchUsers() {
     setIsLoading(true);
     const token = getToken ? getToken() : null;
     try {

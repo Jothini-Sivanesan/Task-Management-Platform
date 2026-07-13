@@ -7,6 +7,16 @@ export default function ProjectsPage() {
   const { user, getToken } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '', description: '', status: 'In Progress', progress: 0, start_date: '', due_date: ''
+  });
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -28,7 +38,74 @@ export default function ProjectsPage() {
     };
 
     fetchProjects();
-  }, [getToken]);
+  }, [getToken, refreshTrigger]);
+
+  const openCreateModal = () => {
+    setEditingProject(null);
+    setFormData({ name: '', description: '', status: 'In Progress', progress: 0, start_date: '', due_date: '' });
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (project) => {
+    setEditingProject(project);
+    setFormData({
+      name: project.name,
+      description: project.description,
+      status: project.status || 'In Progress',
+      progress: project.progress || 0,
+      start_date: project.start_date ? project.start_date.split('T')[0] : '',
+      due_date: project.due_date ? project.due_date.split('T')[0] : ''
+    });
+    setIsModalOpen(true);
+  };
+
+  const confirmDelete = (project) => {
+    setProjectToDelete(project);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleSaveProject = async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    const method = editingProject ? 'PUT' : 'POST';
+    const url = editingProject 
+      ? `http://localhost:5000/api/projects/${editingProject.id}`
+      : 'http://localhost:5000/api/projects';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setIsModalOpen(false);
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        alert('Failed to save project');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return;
+    const token = getToken();
+    try {
+      const res = await fetch(`http://localhost:5000/api/projects/${projectToDelete.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setIsDeleteModalOpen(false);
+        setProjectToDelete(null);
+        setRefreshTrigger(prev => prev + 1);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (loading) {
     return <div className="p-8 text-sm font-medium text-gray-500">Loading projects...</div>;
@@ -50,7 +127,7 @@ export default function ProjectsPage() {
           <p className="text-gray-500 text-[15px] mt-1">Manage and track all projects</p>
         </div>
         {user && user.role === 'PM' && (
-          <button className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-lg text-[14px] font-medium transition-transform hover:-translate-y-0.5 shadow-md flex items-center gap-2 self-start md:self-auto">
+          <button onClick={openCreateModal} className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-lg text-[14px] font-medium transition-transform hover:-translate-y-0.5 shadow-md flex items-center gap-2 self-start md:self-auto">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
             </svg>
@@ -191,22 +268,28 @@ export default function ProjectsPage() {
                     </td>
                     <td className="py-4 pl-4 pr-6">
                       <div className="flex items-center justify-center gap-3">
-                        <button className="text-gray-400 hover:text-black transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                        </button>
-                        <button className="text-gray-400 hover:text-black transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button className="text-gray-400 hover:text-black transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                          </svg>
-                        </button>
+                        {user && user.role === 'PM' && (
+                          <>
+                            <button onClick={() => openEditModal(project)} className="text-gray-400 hover:text-black transition-colors" title="Edit">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button onClick={() => confirmDelete(project)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                        {(!user || user.role !== 'PM') && (
+                          <button className="text-gray-400 hover:text-black transition-colors" title="View Details">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -239,6 +322,71 @@ export default function ProjectsPage() {
         </div>
 
       </div>
+
+      {/* Create/Edit Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+            <h2 className="text-xl font-bold mb-4 text-black">{editingProject ? 'Edit Project' : 'New Project'}</h2>
+            <form onSubmit={handleSaveProject} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-black text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-black text-sm" rows="3" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-black text-sm">
+                    <option value="Active">Active</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="On Hold">On Hold</option>
+                    <option value="Completed">Completed</option>
+                    <option value="At Risk">At Risk</option>
+                    <option value="On Track">On Track</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Progress (%)</label>
+                  <input type="number" min="0" max="100" value={formData.progress} onChange={e => setFormData({...formData, progress: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-black text-sm" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-black text-sm text-gray-700" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                  <input type="date" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-black text-sm text-gray-700" />
+                </div>
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-black transition-colors">Cancel</button>
+                <button type="submit" className="px-4 py-2 text-sm font-medium bg-black text-white rounded-md hover:bg-gray-800 transition-colors">{editingProject ? 'Save Changes' : 'Create Project'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-xl font-bold mb-3 text-red-600">Delete Project</h2>
+            <p className="text-[14px] text-gray-600 mb-6">Are you sure you want to delete <strong>{projectToDelete?.name}</strong>? This action cannot be undone and will delete all associated tasks.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-black transition-colors">Cancel</button>
+              <button onClick={handleDeleteProject} className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
