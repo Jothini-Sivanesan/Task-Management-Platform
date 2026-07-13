@@ -40,11 +40,19 @@ const getProjects = async (req, res) => {
 
     // Admin can see all projects. Others see projects they are members of.
     if (req.user.role === 'ADMIN') {
-      query = 'SELECT * FROM Projects';
+      query = `
+        SELECT p.*, u.name AS manager_name, 
+        (SELECT COUNT(*) FROM ProjectMembers pm2 WHERE pm2.project_id = p.id) AS member_count
+        FROM Projects p
+        LEFT JOIN Users u ON p.created_by_id = u.id
+      `;
     } else {
       query = `
-        SELECT p.* FROM Projects p
+        SELECT p.*, u.name AS manager_name,
+        (SELECT COUNT(*) FROM ProjectMembers pm2 WHERE pm2.project_id = p.id) AS member_count
+        FROM Projects p
         JOIN ProjectMembers pm ON p.id = pm.project_id
+        LEFT JOIN Users u ON p.created_by_id = u.id
         WHERE pm.user_id = ?
       `;
       params = [req.user.id];

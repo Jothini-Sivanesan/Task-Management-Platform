@@ -1,52 +1,41 @@
 const db = require('../config/db');
 
+const addColumn = async (table, column, definition) => {
+  try {
+    await db.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`Added ${column} to ${table}`);
+  } catch (e) {
+    if (e.code === 'ER_DUP_FIELDNAME') {
+      console.log(`${column} already exists in ${table}`);
+    } else {
+      console.error(`Error adding ${column} to ${table}:`, e);
+    }
+  }
+};
+
 const alterDb = async () => {
   try {
-    console.log('Altering Users table to add is_active column...');
-    await db.query(`
-      ALTER TABLE Users
-      ADD COLUMN is_active BOOLEAN DEFAULT TRUE
-    `);
-    console.log('Successfully added is_active column.');
-  } catch (err) {
-    if (err.code === 'ER_DUP_FIELDNAME') {
-      console.log('Column is_active already exists.');
-    } else {
-      console.error('Error altering table:', err);
+    console.log('Altering database schema...');
+    
+    await addColumn('Projects', 'progress', 'INT DEFAULT 0');
+    await addColumn('Projects', 'start_date', 'DATE');
+    await addColumn('Projects', 'due_date', 'DATE');
+    
+    try {
+      await db.query(`ALTER TABLE Projects MODIFY COLUMN status VARCHAR(50) DEFAULT 'Not Started'`);
+      console.log('Modified Projects status column.');
+    } catch (e) {
+      console.error(e);
     }
-  }
 
-  try {
-    console.log('Altering Projects table to add deadline column...');
-    await db.query(`
-      ALTER TABLE Projects
-      ADD COLUMN deadline DATE
-    `);
-    console.log('Successfully added deadline column.');
+    await addColumn('Tasks', 'due_date', 'DATE');
+
+    console.log('Database alteration completed.');
+    process.exit(0);
   } catch (err) {
-    if (err.code === 'ER_DUP_FIELDNAME') {
-      console.log('Column deadline already exists.');
-    } else {
-      console.error('Error altering table:', err);
-    }
+    console.error('Error in alterDb:', err);
+    process.exit(1);
   }
-
-  try {
-    console.log('Altering Tasks table to add due_date column...');
-    await db.query(`
-      ALTER TABLE Tasks
-      ADD COLUMN due_date DATE
-    `);
-    console.log('Successfully added due_date column.');
-  } catch (err) {
-    if (err.code === 'ER_DUP_FIELDNAME') {
-      console.log('Column due_date already exists.');
-    } else {
-      console.error('Error altering table:', err);
-    }
-  }
-
-  process.exit(0);
 };
 
 alterDb();

@@ -51,12 +51,22 @@ const getTasks = async (req, res) => {
 
     // Admin sees all. Others see tasks in projects they belong to.
     if (req.user.role === 'ADMIN') {
-      query = 'SELECT * FROM Tasks';
+      query = `
+        SELECT t.*, p.name AS project_name, u.name AS assignee_name
+        FROM Tasks t
+        LEFT JOIN Projects p ON t.project_id = p.id
+        LEFT JOIN Users u ON t.assigned_to_id = u.id
+        ORDER BY t.due_date ASC
+      `;
     } else {
       query = `
-        SELECT t.* FROM Tasks t
+        SELECT t.*, p.name AS project_name, u.name AS assignee_name
+        FROM Tasks t
         JOIN ProjectMembers pm ON t.project_id = pm.project_id
+        LEFT JOIN Projects p ON t.project_id = p.id
+        LEFT JOIN Users u ON t.assigned_to_id = u.id
         WHERE pm.user_id = ?
+        ORDER BY t.due_date ASC
       `;
       params = [req.user.id];
     }

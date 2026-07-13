@@ -39,60 +39,50 @@ const seedDb = async () => {
 
     // Seed Projects
     if (sarahId && johnId) {
-      const projectsData = [
-        ['Website Redesign', 'Revamp the corporate website with new branding.', 'ACTIVE', sarahId, '2026-10-01'],
-        ['Mobile App V2', 'Develop the second version of our iOS app.', 'ACTIVE', sarahId, '2026-12-15'],
-        ['Backend Migration', 'Migrate from monolithic architecture to microservices.', 'ACTIVE', johnId, '2027-02-28']
+      // Clear existing projects and tasks first
+      await db.query('DELETE FROM Tasks');
+      await db.query('DELETE FROM ProjectMembers');
+      await db.query('DELETE FROM Projects');
+
+      const dummyProjects = [
+        { name: 'Website Redesign', description: 'UI/UX design and development', status: 'In Progress', progress: 75, start_date: '2025-01-01', due_date: '2025-07-20', managerId: sarahId },
+        { name: 'Mobile App Development', description: 'Android and iOS application', status: 'In Progress', progress: 60, start_date: '2025-02-15', due_date: '2025-08-15', managerId: johnId },
+        { name: 'Marketing Campaign', description: 'Q3 digital marketing campaign', status: 'At Risk', progress: 40, start_date: '2025-03-01', due_date: '2025-06-30', managerId: sarahId },
+        { name: 'Internal Dashboard', description: 'Admin dashboard for analytics', status: 'On Track', progress: 90, start_date: '2025-01-10', due_date: '2025-07-10', managerId: johnId },
+        { name: 'Customer Portal', description: 'Self-service portal for clients', status: 'On Hold', progress: 25, start_date: '2025-04-01', due_date: '2025-09-30', managerId: sarahId },
+        { name: 'API Integration', description: 'Third-party payment gateway', status: 'In Progress', progress: 55, start_date: '2025-05-01', due_date: '2025-08-25', managerId: johnId },
+        { name: 'Security Audit', description: 'Annual security assessment', status: 'On Track', progress: 15, start_date: '2025-06-01', due_date: '2025-07-05', managerId: sarahId },
+        { name: 'Cloud Migration', description: 'AWS infrastructure setup', status: 'In Progress', progress: 80, start_date: '2024-11-01', due_date: '2025-07-15', managerId: johnId }
       ];
 
-      for (const project of projectsData) {
-        await db.query(
-          'INSERT INTO Projects (name, description, status, created_by_id, deadline) VALUES (?, ?, ?, ?, ?)',
-          project
+      for (const p of dummyProjects) {
+        const [res] = await db.query(
+          'INSERT INTO Projects (name, description, status, progress, start_date, due_date, created_by_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [p.name, p.description, p.status, p.progress, p.start_date, p.due_date, p.managerId]
         );
-      }
-      console.log('Projects seeded.');
+        
+        const projectId = res.insertId;
 
-      // Get inserted projects
-      const [projects] = await db.query('SELECT id, name FROM Projects');
-      const getProjectId = (name) => projects.find(p => p.name === name)?.id;
+        // Add to ProjectMembers
+        await db.query('INSERT INTO ProjectMembers (project_id, user_id) VALUES (?, ?)', [projectId, p.managerId]);
+        if (aliceId) await db.query('INSERT INTO ProjectMembers (project_id, user_id) VALUES (?, ?)', [projectId, aliceId]);
+        if (bobId) await db.query('INSERT INTO ProjectMembers (project_id, user_id) VALUES (?, ?)', [projectId, bobId]);
 
-      const websiteId = getProjectId('Website Redesign');
-      const mobileId = getProjectId('Mobile App V2');
-      const backendId = getProjectId('Backend Migration');
-
-      // Seed Project Members
-      if (websiteId && mobileId && backendId) {
-        const membersData = [
-          [websiteId, sarahId], [websiteId, aliceId], [websiteId, bobId],
-          [mobileId, sarahId], [mobileId, aliceId],
-          [backendId, johnId], [backendId, bobId]
+        // Insert some tasks for this project
+        const dummyTasks = [
+          { title: `Design phase - ${p.name}`, description: 'Initial designs', status: 'DONE', priority: 'HIGH', due_date: '2025-06-01' },
+          { title: `Development - ${p.name}`, description: 'Core implementation', status: 'IN_PROGRESS', priority: 'MEDIUM', due_date: '2025-07-10' },
+          { title: `Testing - ${p.name}`, description: 'QA and testing', status: 'TODO', priority: 'LOW', due_date: '2025-08-01' }
         ];
 
-        for (const member of membersData) {
+        for (const t of dummyTasks) {
           await db.query(
-            'INSERT IGNORE INTO ProjectMembers (project_id, user_id) VALUES (?, ?)',
-            member
+            'INSERT INTO Tasks (title, description, status, priority, due_date, project_id, assigned_to_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [t.title, t.description, t.status, t.priority, t.due_date, projectId, p.managerId]
           );
         }
-        console.log('Project Members seeded.');
-
-        // Seed Tasks
-        const tasksData = [
-          ['Design new logo', 'Create modern variants of the logo.', 'TODO', 'HIGH', websiteId, aliceId, '2026-08-10'],
-          ['Implement homepage UI', 'Build React components for homepage.', 'IN_PROGRESS', 'MEDIUM', websiteId, bobId, '2026-08-20'],
-          ['API setup for mobile', 'Create REST endpoints for the app.', 'TODO', 'HIGH', mobileId, aliceId, '2026-09-01'],
-          ['Database refactoring', 'Optimize queries and add indexes.', 'DONE', 'MEDIUM', backendId, bobId, '2026-07-01']
-        ];
-
-        for (const task of tasksData) {
-          await db.query(
-            'INSERT INTO Tasks (title, description, status, priority, project_id, assigned_to_id, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            task
-          );
-        }
-        console.log('Tasks seeded.');
       }
+      console.log('Seeded 8 projects and related tasks.');
     }
 
     console.log('Database seeding completed successfully.');
