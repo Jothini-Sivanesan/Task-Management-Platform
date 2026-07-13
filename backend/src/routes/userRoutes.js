@@ -1,19 +1,17 @@
 const express = require('express');
-const { getUsers, updateUserRole, deleteUser } = require('../controllers/userController');
+const { getUsers, updateUser, deleteUser } = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 router.use(protect);
-router.use(authorize('ADMIN'));
 
+// PMs and Admins can get users (to assign members), but only Admins can manage them
 router.route('/')
-  .get(getUsers);
-
-router.route('/:id/role')
-  .put(updateUserRole);
+  .get(authorize('ADMIN', 'PM'), getUsers);
 
 router.route('/:id')
-  .delete(deleteUser);
+  .put(authorize('ADMIN'), updateUser)
+  .delete(authorize('ADMIN'), deleteUser);
 
 module.exports = router;

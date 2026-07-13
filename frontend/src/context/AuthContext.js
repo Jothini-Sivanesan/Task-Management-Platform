@@ -92,8 +92,15 @@ export const AuthProvider = ({ children }) => {
     router.push('/login');
   };
 
+  const getToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('token');
+    }
+    return null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, getToken }}>
       {children}
     </AuthContext.Provider>
   );

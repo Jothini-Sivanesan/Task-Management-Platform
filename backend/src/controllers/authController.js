@@ -42,6 +42,10 @@ const login = async (req, res) => {
 
     const user = users[0];
 
+    if (!user.is_active) {
+      return res.status(403).json({ message: 'Account is deactivated. Please contact an administrator.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -50,7 +54,7 @@ const login = async (req, res) => {
     const token = generateToken(user.id, user.role);
 
     res.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, is_active: user.is_active },
       token
     });
   } catch (error) {

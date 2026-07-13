@@ -11,6 +11,7 @@ const initDb = async () => {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         role ENUM('ADMIN', 'PM', 'MEMBER') DEFAULT 'MEMBER',
+        is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -58,6 +59,30 @@ const initDb = async () => {
     console.log('Tasks table initialized.');
 
     console.log('Database initialization completed successfully.');
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS AuditLogs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        action VARCHAR(255) NOT NULL,
+        entity VARCHAR(255),
+        entity_id INT,
+        details TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('AuditLogs table initialized.');
+
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS Settings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        key_name VARCHAR(255) UNIQUE NOT NULL,
+        key_value TEXT NOT NULL
+      )
+    `);
+    console.log('Settings table initialized.');
+
     process.exit(0);
   } catch (err) {
     console.error('Error initializing database:', err);

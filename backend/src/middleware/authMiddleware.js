@@ -12,10 +12,14 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = verifyToken(token);
 
-      const [users] = await db.query('SELECT id, name, email, role FROM Users WHERE id = ?', [decoded.id]);
+      const [users] = await db.query('SELECT id, name, email, role, is_active FROM Users WHERE id = ?', [decoded.id]);
       
       if (users.length === 0) {
         return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      if (!users[0].is_active) {
+        return res.status(403).json({ message: 'Account is deactivated' });
       }
 
       req.user = users[0];
